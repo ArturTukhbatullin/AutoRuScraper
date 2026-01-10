@@ -1,2 +1,8 @@
-# AutoRuScraper
-AutoRuScraper
+### AutoRuScraper
+
+
+### Описание Скриптов:
+
+1) main.py - основной скрипт, которые реализует парсинг данных с каждой странички сайта (без перехода на страницу с машиной) с помощью Selenium и BS4 Связан со скриптом scraper/AutoRuScraper.py
+
+2) db_save.py - скрипт по загрузке csv (полученные по скрипту №1) в локальную базу данных sqlite. Связан со скриптом scraper/AutoRuDB.py
