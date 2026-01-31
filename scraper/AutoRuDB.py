@@ -58,7 +58,7 @@ class AutoRuDB:
 
             id: Mapped[int] = mapped_column(primary_key=True)
             name: Mapped[str] = mapped_column(String(30))
-            url: Mapped[Optional[str]]
+            url: Mapped[str]
             cost: Mapped[float]
             millege: Mapped[str]
             engine_volume: Mapped[str]
@@ -67,6 +67,10 @@ class AutoRuDB:
             body_type: Mapped[str]
             drive_type: Mapped[str]
             gearbox_type: Mapped[str]
+            owners_num : Mapped[Optional[str]]
+            configuration : Mapped[Optional[str]]
+            steering_wheel_type : Mapped[Optional[str]]
+            color : Mapped[Optional[str]]
             parse_date: Mapped[date] = mapped_column(Date())
 
         Base.metadata.create_all(self.engine)
@@ -78,18 +82,36 @@ class AutoRuDB:
         
         new_data = []
         for i in range(len(data)):
-            temp = self.autoru_table(name = data.loc[i,'name'],
-                url = data.loc[i,'url'],
-                cost = data.loc[i,'cost'],
-                millege = data.loc[i,'millege'],
-                engine_volume = data.loc[i,'engine_volume'],
-                motor_power = data.loc[i,'motor_power'],
-                fuel_type = data.loc[i,'fuel_type'],
-                body_type = data.loc[i,'body_type'],
-                drive_type = data.loc[i,'drive_type'],
-                gearbox_type = data.loc[i,'gearbox_type'],
-                parse_date = data.loc[i,'parse_date']
-                )
+            try:
+                temp = self.autoru_table(name = data.loc[i,'name'],
+                    url = data.loc[i,'url'],
+                    cost = data.loc[i,'cost'],
+                    millege = data.loc[i,'millege'],
+                    engine_volume = data.loc[i,'engine_volume'],
+                    motor_power = data.loc[i,'motor_power'],
+                    fuel_type = data.loc[i,'fuel_type'],
+                    body_type = data.loc[i,'body_type'],
+                    drive_type = data.loc[i,'drive_type'],
+                    gearbox_type = data.loc[i,'gearbox_type'],
+                    owners_num = data.loc[i,'owners_num'],
+                    configuration = data.loc[i,'configuration'],
+                    steering_wheel_type = data.loc[i,'steering_wheel_type'],
+                    color = data.loc[i,'color'],
+                    parse_date = data.loc[i,'parse_date']
+                    )
+            except:
+                temp = self.autoru_table(name = data.loc[i,'name'],
+                    url = data.loc[i,'url'],
+                    cost = data.loc[i,'cost'],
+                    millege = data.loc[i,'millege'],
+                    engine_volume = data.loc[i,'engine_volume'],
+                    motor_power = data.loc[i,'motor_power'],
+                    fuel_type = data.loc[i,'fuel_type'],
+                    body_type = data.loc[i,'body_type'],
+                    drive_type = data.loc[i,'drive_type'],
+                    gearbox_type = data.loc[i,'gearbox_type'],
+                    parse_date = data.loc[i,'parse_date']
+                    )
             new_data.append(temp)
 
         print(temp)

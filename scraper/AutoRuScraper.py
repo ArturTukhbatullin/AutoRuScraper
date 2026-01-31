@@ -3,7 +3,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from tqdm import tqdm
 from datetime import date
 
@@ -22,13 +24,14 @@ TIMEOUT = 20
 
 class AutoRuScraper:
 
-    def __init__(self, PARSE_URL, PATH_WEB_DRIVER,params):
+    def __init__(self, PARSE_URL, PATH_WEB_DRIVER,params,GET_DETAILS):
 
         self.CITY = params['CITY']
         self.MARK = params['MARK']
         self.MODEL = params['MODEL']
         self.PARSE_URL = PARSE_URL+ fr'{self.CITY}/cars/{self.MARK}/{self.MODEL}/all/?sort=price-asc'
         self.PATH_WEB_DRIVER = PATH_WEB_DRIVER
+        self.GET_DETAILS = GET_DETAILS
 
     def __create_driver__(self):
         chrome_options = Options()
@@ -97,8 +100,8 @@ class AutoRuScraper:
 
         return parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege
 
-    @staticmethod
-    def prepare_output_df(df_orig):
+    # @staticmethod
+    def prepare_output_df(self, df_orig):
         df = df_orig.copy()
 
         df['name'] = df['title'].apply(lambda x: x[0])
@@ -110,21 +113,70 @@ class AutoRuScraper:
         df['drive_type'] = df['items'].apply(lambda x:str(x).split(',')[4]).str.replace("'",'')
         df['gearbox_type'] = df['items'].apply(lambda x:str(x).split(',')[5]).str.replace("'",'').str.replace("]",'')
 
+        if self.GET_DETAILS:
+
+            print(df[['owners_num','details']])
+            df['owners_num'] = df['owners_num'].apply(lambda x: str(x).split(',')[0])
+            df['configuration'] = df['details'].apply(lambda x: str(x).split(',')[0])
+            df['steering_wheel_type'] = df['details'].apply(lambda x: str(x).split(',')[1])
+            df['color'] = df['details'].apply(lambda x: str(x).split(',')[2])
+
+            # df['owners_num'] = df['owners_num'].apply(lambda x: list(x)[0])
+            # df['configuration'] = df['details'].apply(lambda x: list(x)[0])
+            # df['steering_wheel_type'] = df['details'].apply(lambda x: list(x)[1])
+            # df['color'] = df['details'].apply(lambda x: list(x)[2])
+
         df['parse_date'] = str(date.today())
 
         return df
 
-    def parse_page_with_bs4_postprocess(self,parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege):
+    def parse_page_with_bs4_postprocess(self,parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege,
+                                        parsed_owners = None,parsed_characters = None):
 
         df = pd.DataFrame({'title':parsed_title,
                         'items':parsed_items,
+                        'owners_num':parsed_owners,
+                        'details':parsed_characters,
                         'url':parsed_url,
                         'cost':parsed_cost,
-                        'millege':parsed_millege})
+                        'millege':parsed_millege                        
+                        })
 
         df_postprocessed = self.prepare_output_df(df)
 
         self.results = df_postprocessed
+
+    def parse_car_details(self,url,pause_sec):
+
+        self.make_pause(pause_sec)
+        original_tab = self.driver.current_window_handle
+        self.driver.execute_script(fr"window.open('{url}');")
+
+        # Переключиться на новую вкладку
+        self.driver.switch_to.window(self.driver.window_handles[1])
+        self.make_pause(pause_sec)
+
+        html2 = self.driver.page_source
+        bs2 = BeautifulSoup(html2, 'html.parser',from_encoding='utf-8')
+        self.make_pause(pause_sec)
+
+        owners = bs2.find_all('ul', {'class':'CardInfoSummary__list-jpQIS'})[0]
+        owners = owners.find_all('li',{'class':'CardInfoSummarySimpleRow-CY5TE'})
+        owners = [i.find('div',{'class':'CardInfoSummarySimpleRow__content-IIKcj'}).text.replace('\xa0',' ') for i in owners if i.find('div',{'class':'CardInfoSummarySimpleRow__label-uJbU8'}).text=='Владельцы']
+
+        characters = bs2.find_all('ul',{'class':'CardInfoSummary__list-jpQIS'})[1]
+        characters = characters.find_all('li',{'class':'CardInfoSummaryComplexRow-CngDv'})
+        # characters = [i.text.replace('Комплектация','').replace('Руль','').replace('Цвет','') for i in characters if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Комплектация','Руль','Цвет']]
+        characters_1 = [i.text.replace('Комплектация','')  if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Комплектация'] else 'Null' for i in characters]
+        characters_2 = [i.text.replace('Руль','')  if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Руль'] else 'Null' for i in characters]
+        characters_3 = [i.text.replace('Цвет','')  if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Цвет'] else 'Null' for i in characters]
+        characters = [[characters_1[i],characters_2[i],characters_3[i]] for i in range(len(characters))]
+
+        # Возвращаемся к исходной вкладке
+        self.driver.close()
+        self.driver.switch_to.window(original_tab)
+
+        return owners, characters
 
     def save_results(self):
 
@@ -198,7 +250,6 @@ class AutoRuScraper:
 
                     except:
                         logger.warning(fr'TimeOut: URL не поменялся после явного перехода по ссылке ({self.driver.current_url} & {current_url})')              
-                    
 
             # Ожидаем загрузки DOM
             try:
@@ -238,6 +289,15 @@ class AutoRuScraper:
         logger.info(fr"Парсинг страницы {page} с bs4 завершен")
         page+=1
 
+        if self.GET_DETAILS:
+            parsed_owners = [0] * len(parsed_url)
+            parsed_characters = [0] * len(parsed_url)
+            for ind in range(len(parsed_url)):
+                parsed_owners[ind], parsed_characters[ind] = self.parse_car_details(parsed_url[ind], pause_sec)
+            logger.info(fr"Парсинг деталей с каждой страницы на странице {page} с bs4 завершен")
+        else:
+            parsed_owners, parsed_characters = None,None
+
         # Парсинг остальных страниц
         if max_page_num == None:
             max_page_num = self.pages[-1]
@@ -248,15 +308,25 @@ class AutoRuScraper:
             parsed_title_page,parsed_items_page,parsed_url_page,parsed_cost_page,parsed_millege_page = self.parse_page_with_bs4()
             logger.info(fr"Парсинг страницы {i} с bs4 завершен")
 
-            parsed_title+=(parsed_title_page)
-            parsed_items+=(parsed_items_page)
-            parsed_url+=(parsed_url_page)
-            parsed_cost+=(parsed_cost_page)
+            if self.GET_DETAILS:
+                parsed_owners_page = [0] * len(parsed_url_page)
+                parsed_characters_page = [0] * len(parsed_url_page)
+                for ind in range(len(parsed_url_page)):
+                    parsed_owners_page[ind], parsed_characters_page[ind] = self.parse_car_details(parsed_url_page[ind], pause_sec)
+                logger.info(fr"Парсинг деталей с каждой страницы на странице {page} с bs4 завершен")
+
+            parsed_title+=parsed_title_page
+            parsed_items+=parsed_items_page
+            parsed_url+=parsed_url_page
+            parsed_cost+=parsed_cost_page
             parsed_millege+=parsed_millege_page
+            if self.GET_DETAILS:
+                parsed_owners+=parsed_owners_page
+                parsed_characters+=parsed_characters_page
+            else:
+                parsed_owners, parsed_characters = None,None
 
-            print('Цена :',i,parsed_cost_page[0])
-
-        self.parse_page_with_bs4_postprocess(parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege)
+        self.parse_page_with_bs4_postprocess(parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege, parsed_owners,parsed_characters)
         logger.info(fr"ПострПроцесс bs4 завершен")
 
         self.save_results()

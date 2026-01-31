@@ -17,8 +17,9 @@ if __name__ == "__main__":
         db.load_data_to_db(data)
 
 
-
     # data_db = db.read_db('autoru')
     # print(data_db['name'].value_counts())
     # print()
     # print(data_db['url'].value_counts())
+    # print()
+    # print(data_db['color'].value_counts(dropna=False))
