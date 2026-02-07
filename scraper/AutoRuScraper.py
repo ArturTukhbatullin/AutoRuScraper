@@ -106,25 +106,19 @@ class AutoRuScraper:
 
         df['name'] = df['title'].apply(lambda x: x[0])
 
-        df['engine_volume'] = df['items'].apply(lambda x:str(x).split(',')[0]).str.replace("['",'')
-        df['motor_power'] = df['items'].apply(lambda x:str(x).split(',')[1])
-        df['fuel_type'] = df['items'].apply(lambda x:str(x).split(',')[2]).str.replace("'",'')
-        df['body_type'] = df['items'].apply(lambda x:str(x).split(',')[3]).str.replace("'",'')
-        df['drive_type'] = df['items'].apply(lambda x:str(x).split(',')[4]).str.replace("'",'')
-        df['gearbox_type'] = df['items'].apply(lambda x:str(x).split(',')[5]).str.replace("'",'').str.replace("]",'')
+        df['engine_volume'] = df['items'].apply(lambda x: list(x)[0].split(',')[0].replace("['",''))
+        df['motor_power'] = df['items'].apply(lambda x: list(x)[0].split(',')[1].replace(' ',''))
+        df['fuel_type'] = df['items'].apply(lambda x: list(x)[0].split(',')[2].replace(' ',''))
+        df['body_type'] = df['items'].apply(lambda x: list(x)[1])
+        df['drive_type'] = df['items'].apply(lambda x: list(x)[2])
+        df['gearbox_type'] = df['items'].apply(lambda x: list(x)[3])
 
         if self.GET_DETAILS:
 
-            print(df[['owners_num','details']])
-            df['owners_num'] = df['owners_num'].apply(lambda x: str(x).split(',')[0])
-            df['configuration'] = df['details'].apply(lambda x: str(x).split(',')[0])
-            df['steering_wheel_type'] = df['details'].apply(lambda x: str(x).split(',')[1])
-            df['color'] = df['details'].apply(lambda x: str(x).split(',')[2])
-
-            # df['owners_num'] = df['owners_num'].apply(lambda x: list(x)[0])
-            # df['configuration'] = df['details'].apply(lambda x: list(x)[0])
-            # df['steering_wheel_type'] = df['details'].apply(lambda x: list(x)[1])
-            # df['color'] = df['details'].apply(lambda x: list(x)[2])
+            df['owners_num'] = df['owners_num'].apply(lambda x: list(x)[0])
+            df['configuration'] = df['details'].apply(lambda x: list(x)[0])
+            df['steering_wheel_type'] = df['details'].apply(lambda x: list(x)[1])
+            df['color'] = df['details'].apply(lambda x: list(x)[2])
 
         df['parse_date'] = str(date.today())
 
@@ -166,17 +160,27 @@ class AutoRuScraper:
 
         characters = bs2.find_all('ul',{'class':'CardInfoSummary__list-jpQIS'})[1]
         characters = characters.find_all('li',{'class':'CardInfoSummaryComplexRow-CngDv'})
-        # characters = [i.text.replace('Комплектация','').replace('Руль','').replace('Цвет','') for i in characters if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Комплектация','Руль','Цвет']]
-        characters_1 = [i.text.replace('Комплектация','')  if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Комплектация'] else 'Null' for i in characters]
-        characters_2 = [i.text.replace('Руль','')  if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Руль'] else 'Null' for i in characters]
-        characters_3 = [i.text.replace('Цвет','')  if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Цвет'] else 'Null' for i in characters]
-        characters = [[characters_1[i],characters_2[i],characters_3[i]] for i in range(len(characters))]
+        characters_1 = [i.text.replace('Комплектация','') for i in characters  if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Комплектация']]
+        characters_2 = [i.text.replace('Руль','')  for i in characters if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Руль']]
+        characters_3 = [i.text.replace('Цвет','')  for i in characters if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Цвет']]
+        
+        def replace_empty_list(characters_1):
+            if characters_1 == []:
+                characters_1 = [None]
+            return characters_1
+        
+        owners = replace_empty_list(owners)
+        characters_1 = replace_empty_list(characters_1)
+        characters_2 = replace_empty_list(characters_2)
+        characters_3 = replace_empty_list(characters_3)
+
+        characters_clean = characters_1 + characters_2 + characters_3
 
         # Возвращаемся к исходной вкладке
         self.driver.close()
         self.driver.switch_to.window(original_tab)
 
-        return owners, characters
+        return owners, characters_clean
 
     def save_results(self):
 
@@ -294,9 +298,14 @@ class AutoRuScraper:
             parsed_characters = [0] * len(parsed_url)
             for ind in range(len(parsed_url)):
                 parsed_owners[ind], parsed_characters[ind] = self.parse_car_details(parsed_url[ind], pause_sec)
+                print(parsed_characters[ind])
+                print(parsed_owners[ind])
             logger.info(fr"Парсинг деталей с каждой страницы на странице {page} с bs4 завершен")
         else:
             parsed_owners, parsed_characters = None,None
+
+        for i in range(len(parsed_items)):
+            print(len(parsed_items[i]),parsed_items[i])
 
         # Парсинг остальных страниц
         if max_page_num == None:
