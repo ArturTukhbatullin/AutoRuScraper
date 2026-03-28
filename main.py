@@ -4,19 +4,15 @@ import random
 import os
 
 PARSE_URL = 'https://auto.ru/'
-PATH_WEB_DRIVER = 'D:\WebDrivers\chromedriver-win64/chromedriver.exe'
+PATH_WEB_DRIVER = 'scraper/WebDrivers/chromedriver-win64/chromedriver.exe'
 
 cars_dict = {
-            # 'volkswagen':['golf'],
-            'volkswagen':['golf','polo','golf_r'],
+            # 'volkswagen':['golf_r']
+            # 'volkswagen':['golf','polo','golf_r'],
              'lixiang':['L6','L7','L9'],
-             'vaz':['granta'],
-             'mercedes':['e_klasse','c_klasse']
+            #  'vaz':['granta'],
+            #  'mercedes':['e_klasse','c_klasse']
              }
-
-# cars_dict = {
-#             'vaz':['granta'],
-#             }
 
 CITY='kazan'
 

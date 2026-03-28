@@ -24,11 +24,6 @@ class AutoRuDB:
 
     def __init__(self, db_name):
 
-        cols = ['name', 'url', 'cost', 'millege',  'engine_volume',
-       'motor_power', 'fuel_type', 'body_type', 'drive_type', 'gearbox_type',
-       'parse_date']
-        
-        self.cols = cols
         self.db_name = db_name
 
 
@@ -71,6 +66,7 @@ class AutoRuDB:
             configuration : Mapped[Optional[str]]
             steering_wheel_type : Mapped[Optional[str]]
             color : Mapped[Optional[str]]
+            saler_comment : Mapped[Optional[str]]
             parse_date: Mapped[date] = mapped_column(Date())
 
         Base.metadata.create_all(self.engine)
@@ -97,6 +93,7 @@ class AutoRuDB:
                     configuration = data.loc[i,'configuration'],
                     steering_wheel_type = data.loc[i,'steering_wheel_type'],
                     color = data.loc[i,'color'],
+                    saler_comment = data.loc[i, 'saler_comment'],
                     parse_date = data.loc[i,'parse_date']
                     )
             except:
@@ -114,7 +111,7 @@ class AutoRuDB:
                     )
             new_data.append(temp)
 
-        print(temp)
+        # print(temp)
 
         Session = sessionmaker(bind=self.engine)
         session = Session()

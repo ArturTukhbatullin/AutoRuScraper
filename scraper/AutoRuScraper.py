@@ -125,7 +125,7 @@ class AutoRuScraper:
         return df
 
     def parse_page_with_bs4_postprocess(self,parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege,
-                                        parsed_owners = None,parsed_characters = None):
+                                        parsed_owners = None,parsed_characters = None, parse_saler_comment = None):
 
         df = pd.DataFrame({'title':parsed_title,
                         'items':parsed_items,
@@ -133,7 +133,8 @@ class AutoRuScraper:
                         'details':parsed_characters,
                         'url':parsed_url,
                         'cost':parsed_cost,
-                        'millege':parsed_millege                        
+                        'millege':parsed_millege,
+                        'saler_comment':parse_saler_comment                       
                         })
 
         df_postprocessed = self.prepare_output_df(df)
@@ -164,6 +165,18 @@ class AutoRuScraper:
         characters_2 = [i.text.replace('Руль','')  for i in characters if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Руль']]
         characters_3 = [i.text.replace('Цвет','')  for i in characters if i.find('div',{'class':'CardInfoSummaryComplexRow__cellTitle-S_R1k'}).text in ['Цвет']]
         
+        
+        saler_comment = bs2.find_all('div', {'class':"CardDescriptionHTML"})
+        # print(saler_comment, type(saler_comment))
+
+        # save last page
+        with open('output.html', 'w', encoding='utf-8') as f:
+            f.write(bs2.prettify())
+        if saler_comment == []:
+            saler_comment = None    
+        else:
+            saler_comment = "\n".join([i.text for i in saler_comment[0].find_all('span')])
+
         def replace_empty_list(characters_1):
             if characters_1 == []:
                 characters_1 = [None]
@@ -180,7 +193,7 @@ class AutoRuScraper:
         self.driver.close()
         self.driver.switch_to.window(original_tab)
 
-        return owners, characters_clean
+        return owners, characters_clean,saler_comment
 
     def save_results(self):
 
@@ -296,16 +309,17 @@ class AutoRuScraper:
         if self.GET_DETAILS:
             parsed_owners = [0] * len(parsed_url)
             parsed_characters = [0] * len(parsed_url)
+            parsed_saler_comment = [''] * len(parsed_url)
             for ind in range(len(parsed_url)):
-                parsed_owners[ind], parsed_characters[ind] = self.parse_car_details(parsed_url[ind], pause_sec)
-                print(parsed_characters[ind])
-                print(parsed_owners[ind])
+                parsed_owners[ind], parsed_characters[ind], parsed_saler_comment[ind] = self.parse_car_details(parsed_url[ind], pause_sec)
+                # print(parsed_characters[ind])
+                # print(parsed_owners[ind])
             logger.info(fr"Парсинг деталей с каждой страницы на странице {page} с bs4 завершен")
         else:
             parsed_owners, parsed_characters = None,None
 
-        for i in range(len(parsed_items)):
-            print(len(parsed_items[i]),parsed_items[i])
+        # for i in range(len(parsed_items)):
+            # print(len(parsed_items[i]),parsed_items[i])
 
         # Парсинг остальных страниц
         if max_page_num == None:
@@ -320,8 +334,9 @@ class AutoRuScraper:
             if self.GET_DETAILS:
                 parsed_owners_page = [0] * len(parsed_url_page)
                 parsed_characters_page = [0] * len(parsed_url_page)
+                parsed_saler_comment_page = [''] * len(parsed_url_page)
                 for ind in range(len(parsed_url_page)):
-                    parsed_owners_page[ind], parsed_characters_page[ind] = self.parse_car_details(parsed_url_page[ind], pause_sec)
+                    parsed_owners_page[ind], parsed_characters_page[ind], parsed_saler_comment_page[ind] = self.parse_car_details(parsed_url_page[ind], pause_sec)
                 logger.info(fr"Парсинг деталей с каждой страницы на странице {page} с bs4 завершен")
 
             parsed_title+=parsed_title_page
@@ -332,10 +347,11 @@ class AutoRuScraper:
             if self.GET_DETAILS:
                 parsed_owners+=parsed_owners_page
                 parsed_characters+=parsed_characters_page
+                parsed_saler_comment+=parsed_saler_comment_page
             else:
-                parsed_owners, parsed_characters = None,None
+                parsed_owners, parsed_characters, parsed_saler_comment = None,None,None
 
-        self.parse_page_with_bs4_postprocess(parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege, parsed_owners,parsed_characters)
+        self.parse_page_with_bs4_postprocess(parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege, parsed_owners,parsed_characters,parsed_saler_comment)
         logger.info(fr"ПострПроцесс bs4 завершен")
 
         self.save_results()
