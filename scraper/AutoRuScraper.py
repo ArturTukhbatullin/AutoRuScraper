@@ -2,11 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from tqdm import tqdm
 from datetime import date
 
 from bs4 import BeautifulSoup
@@ -24,13 +20,12 @@ TIMEOUT = 20
 
 class AutoRuScraper:
 
-    def __init__(self, PARSE_URL, PATH_WEB_DRIVER,params,GET_DETAILS):
+    def __init__(self, PARSE_URL,params,GET_DETAILS):
 
         self.CITY = params['CITY']
         self.MARK = params['MARK']
         self.MODEL = params['MODEL']
         self.PARSE_URL = PARSE_URL+ fr'{self.CITY}/cars/{self.MARK}/{self.MODEL}/all/?sort=price-asc'
-        self.PATH_WEB_DRIVER = PATH_WEB_DRIVER
         self.GET_DETAILS = GET_DETAILS
 
     def __create_driver__(self):
@@ -42,11 +37,9 @@ class AutoRuScraper:
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
 
-        service = Service(executable_path=self.PATH_WEB_DRIVER)
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver = webdriver.Chrome(options=chrome_options)
 
         self.driver = driver
-        self.service = service
 
     @staticmethod
     def make_pause(sec):
@@ -120,6 +113,9 @@ class AutoRuScraper:
             df['steering_wheel_type'] = df['details'].apply(lambda x: list(x)[1])
             df['color'] = df['details'].apply(lambda x: list(x)[2])
 
+        df['parse_city'] = self.CITY
+        df['parse_mark'] = self.MARK
+        df['parse_model'] = self.MODEL
         df['parse_date'] = str(date.today())
 
         return df
@@ -316,10 +312,7 @@ class AutoRuScraper:
                 # print(parsed_owners[ind])
             logger.info(fr"Парсинг деталей с каждой страницы на странице {page} с bs4 завершен")
         else:
-            parsed_owners, parsed_characters = None,None
-
-        # for i in range(len(parsed_items)):
-            # print(len(parsed_items[i]),parsed_items[i])
+            parsed_owners, parsed_characters,parsed_saler_comment = None,None,None
 
         # Парсинг остальных страниц
         if max_page_num == None:

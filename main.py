@@ -1,20 +1,30 @@
 from scraper.AutoRuScraper import AutoRuScraper
-
+from scraper.AutoRuDB import AutoRuDB
 import random
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 PARSE_URL = 'https://auto.ru/'
-PATH_WEB_DRIVER = 'scraper/WebDrivers/chromedriver-win64/chromedriver.exe'
 
+CITY='kazan'
 cars_dict = {
-            # 'volkswagen':['golf_r']
+            'volkswagen':['golf_r']
             # 'volkswagen':['golf','polo','golf_r'],
-             'lixiang':['L6','L7','L9'],
+            #  'lixiang':['L6','L7','L9'],
             #  'vaz':['granta'],
             #  'mercedes':['e_klasse','c_klasse']
              }
 
-CITY='kazan'
+
+conn_params = {
+    'username' : os.getenv('db_username'),
+    'password' : os.getenv('db_password'),
+    'host' : os.getenv('db_host'),
+    'port' : os.getenv('db_port')
+}
+db = AutoRuDB('main', **conn_params)
 
 def check_if_file_exist(params):
 
@@ -44,12 +54,16 @@ if __name__ == '__main__':
                     GET_DETAILS = False
 
                 scraper = AutoRuScraper(PARSE_URL = PARSE_URL,
-                                PATH_WEB_DRIVER = PATH_WEB_DRIVER,
                                 params = params,
                                 GET_DETAILS = GET_DETAILS)
             
                 scraper.main(pause_sec=random.randint(3,5),
                         max_page_num = None)
+
+                # print(scraper.results.dtypes)
+                db.create_table()
+                db.load_data_to_db(scraper.results)
+                
             else:
                 print(MARK, MODEL, 'skipped')
 
