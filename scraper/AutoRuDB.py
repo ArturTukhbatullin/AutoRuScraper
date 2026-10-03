@@ -23,6 +23,21 @@ class AutoRuDB:
         self.connection_string = connection_string
         self.engine = create_engine(connection_string)
 
+    def get_init_params(self):
+
+        query = """
+        select * from autoru_init_params
+        where active_flg = True
+        """
+        
+        engine = create_engine(self.connection_string, echo=False)
+            
+        with engine.connect() as connection:
+            data_db = pd.read_sql(query,connection)
+            connection.close()
+
+        return data_db
+
 
     def create_table(self):
        
@@ -39,46 +54,6 @@ class AutoRuDB:
         for row in data.to_dict(orient = 'records'):
             new_data.append(autoru_item.from_row(row))
         new_data = [autoru_table.from_pydantic(item) for item in new_data]
-             
-        # for i in range(len(data)):
-        #     try:
-        #             temp = self.autoru_table(name = data.loc[i,'name'],
-        #                 url = data.loc[i,'url'],
-        #                 cost = float(data.loc[i,'cost']),
-        #                 millege = data.loc[i,'millege'],
-        #                 engine_volume = data.loc[i,'engine_volume'],
-        #                 motor_power = data.loc[i,'motor_power'],
-        #                 fuel_type = data.loc[i,'fuel_type'],
-        #                 body_type = data.loc[i,'body_type'],
-        #                 drive_type = data.loc[i,'drive_type'],
-        #                 gearbox_type = data.loc[i,'gearbox_type'],
-        #                 owners_num = data.loc[i,'owners_num'],
-        #                 configuration = data.loc[i,'configuration'],
-        #                 steering_wheel_type = data.loc[i,'steering_wheel_type'],
-        #                 color = data.loc[i,'color'],
-        #                 saler_comment = data.loc[i, 'saler_comment'],
-        #                 parse_city = data.loc[i,'parse_city'],
-        #                 parse_mark = data.loc[i,'parse_mark'],
-        #                 parse_model = data.loc[i,'parse_model'],
-        #                 parse_date = data.loc[i,'parse_date']
-        #                 )
-        #     except:
-        #             temp = self.autoru_table(name = data.loc[i,'name'],
-        #                 url = data.loc[i,'url'],
-        #                 cost = float(data.loc[i,'cost']),
-        #                 millege = data.loc[i,'millege'],
-        #                 engine_volume = data.loc[i,'engine_volume'],
-        #                 motor_power = data.loc[i,'motor_power'],
-        #                 fuel_type = data.loc[i,'fuel_type'],
-        #                 body_type = data.loc[i,'body_type'],
-        #                 drive_type = data.loc[i,'drive_type'],
-        #                 gearbox_type = data.loc[i,'gearbox_type'],
-        #                 parse_city = data.loc[i,'parse_city'],
-        #                 parse_mark = data.loc[i,'parse_mark'],
-        #                 parse_model = data.loc[i,'parse_model'],
-        #                 parse_date = data.loc[i,'parse_date']
-        #                 )
-        #     new_data.append(temp)
     
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -94,5 +69,5 @@ class AutoRuDB:
     
         with engine.connect() as connection:
                 data_db = pd.read_sql(query,connection)
-    
+                connection.close()
         return data_db

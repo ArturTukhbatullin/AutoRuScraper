@@ -60,7 +60,7 @@ class AutoRuScraper:
         pages = bs.find_all('span', {'class' : 'Button__text'})
         pages = [i.text for i in pages]
         try:
-            last_page = int(pages[-9])
+            last_page = int(pages[-3])
         except:
             last_page = 1
         pages = [i+1 for i in range(last_page)]
@@ -290,8 +290,8 @@ class AutoRuScraper:
         self.page_source = self.driver.page_source
 
         # Работа с cookie
-        self.save_cookies_to_json(filename='cookie/autoru_cookie.json')
-        logger.info(fr"Куки сохранены")
+        # self.save_cookies_to_json(filename='cookie/autoru_cookie.json')
+        # logger.info(fr"Куки сохранены")
 
         # Список всех страниц
         self.get_page_list()
@@ -347,6 +347,6 @@ class AutoRuScraper:
         self.parse_page_with_bs4_postprocess(parsed_title,parsed_items,parsed_url,parsed_cost,parsed_millege, parsed_owners,parsed_characters,parsed_saler_comment)
         logger.info(fr"ПострПроцесс bs4 завершен")
 
-        self.save_results()
-        logger.info(fr"Результаты сохранены в csv")
-        self.driver.close()
+        # self.save_results()
+        # logger.info(fr"Результаты сохранены в csv")
+        # self.driver.close()

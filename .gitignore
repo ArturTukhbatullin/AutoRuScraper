@@ -2,3 +2,9 @@ __pycache__
 *.csv
 *.db
 .env
+venv/
+dist/
+autoruscraper.egg-info/
+cookie/autoru_cookie.json
+logs/log.log
+output.html
